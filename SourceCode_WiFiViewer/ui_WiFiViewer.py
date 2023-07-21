@@ -5,13 +5,14 @@ from PyQt5.QtWidgets import (QApplication,QMainWindow,QDockWidget,QWidget,QFrame
 						QInputDialog,QFileDialog,QFontDialog,QColorDialog,QToolBar,
 						QMenuBar,QStatusBar,QGroupBox,QGridLayout,QHBoxLayout,QVBoxLayout,
 						QFormLayout,QListView,QScrollBar,QDesktopWidget,QProgressBar,
-						QTextBrowser,QComboBox,QAbstractItemView)
-from PyQt5.QtGui import (QFont,QIcon,QPixmap,QMovie,QColor,QTextCursor,QPalette)
+						QTextBrowser,QComboBox,QAbstractItemView,QMenu,QAction)
+from PyQt5.QtGui import (QFont,QIcon,QPixmap,QMovie,QColor,QTextCursor,QPalette,QCursor)
 from PyQt5.QtCore import (Qt,QFile,QTimer,QDateTime,QThread,pyqtSignal,pyqtSlot,
-						QBasicTimer,QCoreApplication,QStringListModel)
+						QBasicTimer,QCoreApplication,QStringListModel,QPoint)
 # from PyQt5.QtMultimedia import QAudioInput,QAudioOutput,QAudioDeviceInfo
 from random import randint
 from res import res
+import functools
 # from eth import eth
 # from xlwt_style import style
 
@@ -211,7 +212,10 @@ class ui_WiFiViewer():
 		self.list.setEditTriggers(QAbstractItemView.NoEditTriggers) # 屏蔽双击编辑
 		self.groupbox_2_grid_1.addWidget(self.list, 0, 0, 1, 8)
 		self.slm = QStringListModel()
-		self.list.setModel(self.slm)
+		self.list.setModel(self.slm)	# 绑定数据源Model
+		self.list.setContextMenuPolicy(Qt.CustomContextMenu)	# 添加右键菜单
+		self.list.customContextMenuRequested[QPoint].connect(self.context_menu_requested)
+
 		# "Confirm"
 		# self.btn_confirm = QPushButton()
 		# self.btn_confirm.setObjectName("btn_confirm")
@@ -221,15 +225,27 @@ class ui_WiFiViewer():
 		# self.btn_confirm.setFont(QFont("微软雅黑", 9, QFont.Normal))
 		# self.btn_confirm.setStyleSheet("QPushButton:hover{background-color:limegreen}")
 		# self.frame_grid.addWidget(self.btn_confirm, 3, 3, 1, 1)
-		# # "Quit"
-		# self.btn_quit = QPushButton()
-		# self.btn_quit.setObjectName("btn_quit")
-		# self.btn_quit.setText(_translate("self", "Quit(&Q)"))
-		# self.btn_quit.setToolTip("Quit")
-		# self.btn_quit.setFont(QFont("微软雅黑", 9, QFont.Normal))
-		# self.btn_quit.setStyleSheet("QPushButton:hover{background-color:orangered}")
-		# self.frame_grid.addWidget(self.btn_quit, 3, 4, 1, 1)
+		# "Quit"
+		self.btn_quit = QPushButton()
+		self.btn_quit.setObjectName("btn_quit")
+		self.btn_quit.setText(_translate("self", "Quit(&Q)"))
+		self.btn_quit.setToolTip("Quit")
+		self.btn_quit.setFont(QFont("微软雅黑", 9, QFont.Normal))
+		self.btn_quit.setStyleSheet("QPushButton:hover{background-color:orangered}")
+		self.frame_grid.addWidget(self.btn_quit, 3, 4, 1, 1)
+		self.btn_quit.hide()
 
-
+	def context_menu_requested(self, pos):
+		self.popMenu = QMenu(self.list)
+		self.pop_conn = QAction("连接此网络")
+		self.pop_conn.triggered.connect(self.list_doubleclicked) 	# 连接槽
+		self.popMenu.addAction(self.pop_conn)
+		self.pop_del = QAction("忘记此网络")
+		self.pop_del.triggered.connect(self.list_selection_forget) 	# 连接槽
+		self.popMenu.addAction(self.pop_del)
+		# self.pop_quit = QAction("退出")
+		# self.pop_quit.triggered.connect(self.close) 		# 连接槽
+		# self.popMenu.addAction(self.pop_quit)
+		self.popMenu.exec_(QCursor.pos())  # 由当前鼠标位置弹出菜单
 
 # ui_WiFiViewer()

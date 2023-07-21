@@ -5,10 +5,10 @@ from PyQt5.QtWidgets import (QApplication,QMainWindow,QDockWidget,QWidget,QFrame
 						QInputDialog,QFileDialog,QFontDialog,QColorDialog,QToolBar,
 						QMenuBar,QStatusBar,QGroupBox,QGridLayout,QHBoxLayout,QVBoxLayout,
 						QFormLayout,QListWidget,QScrollBar,QDesktopWidget,QProgressBar,
-						QShortcut)
-from PyQt5.QtGui import (QFont,QIcon,QPixmap,QColor,QTextCursor,QPalette,QKeySequence)
+						QShortcut,QMenu,QAction)
+from PyQt5.QtGui import (QFont,QIcon,QPixmap,QColor,QTextCursor,QPalette,QKeySequence,QCursor)
 from PyQt5.QtCore import (Qt,QFile,QTimer,QDateTime,QThread,pyqtSignal,QBasicTimer,QObject,
-						QCoreApplication,QModelIndex)
+						QCoreApplication,QModelIndex,QPoint)
 # from PyQt5.QtMultimedia import QAudioInput,QAudioOutput,QAudioDeviceInfo
 import subprocess as sub
 import win32clipboard as cb
@@ -27,25 +27,27 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		self.setupUi(self)
 		self.btn_1_clicked()
 		self.list.clicked.connect(self.list_clicked) 		# 连接槽
+		self.list.doubleClicked.connect(self.list_doubleclicked) 	# 连接槽
 		self.btn_1.clicked.connect(self.btn_1_clicked) 		# 连接槽
 		self.btn_2.clicked.connect(self.btn_2_clicked) 		# 连接槽
+		# self.btn_confirm.clicked.connect(self.confirm)			# 连接槽
 		# QShortcut(QKeySequence("Return"), self, self.confirm)
-		# self.btn_quit.clicked.connect(self.close)					# 连接槽
-		# QShortcut(QKeySequence("Escape"), self, self.close)
+		self.btn_quit.clicked.connect(self.close)					# 连接槽
+		QShortcut(QKeySequence("Escape"), self, self.close)
 
 	def btn_1_clicked(self):
-		self.cmd = "netsh wlan show profiles".encode("gbk")
+		command = "netsh wlan show profiles".encode("gbk")
 		try:
-			self.work_start()
+			self.work_start(cmd=command)
 		except Exception as e:
-			QMessageBox.information(self, "Exception", e)
+			QMessageBox.information(self, "Exception", f"{e}")
 
 	def btn_2_clicked(self):
 		aString = self.entry_2.text()
 		# set_clipboard(aString)
-		cb.OpenClipboard()
-		cb.EmptyClipboard()
 		try:
+			cb.OpenClipboard()
+			cb.EmptyClipboard()
 			cb.SetClipboardData(cb.CF_UNICODETEXT, aString)
 		finally:
 			cb.CloseClipboard()
@@ -59,11 +61,27 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		ssid = self.wifilist[QModelIndex.row()]	# Method_1
 		# ssid = self.list.selectionModel().selectedIndexes()[0].date()	# Methon_2
 		self.entry_1.setText(ssid)
-		self.cmd = f"netsh wlan show profiles name=\"{ssid}\" key=clear".encode("gbk")
+		command = f"netsh wlan show profiles name=\"{ssid}\" key=clear".encode("gbk")
 		try:
-			self.work_start()
+			self.work_start(cmd=command)
 		except Exception as e:
-			QMessageBox.information(self, "Exception", e)
+			QMessageBox.warning(self, "Exception", f"{e}")
+
+	def list_doubleclicked(self):
+		wifiname = self.entry_1.text()
+		command = f"netsh wlan connect name=\"{wifiname}\"".encode("gbk")
+		try:
+			self.work_start(cmd=command)
+		except Exception as e:
+			QMessageBox.warning(self, "Exception", f"{e}")
+
+	def list_selection_forget(self):
+		name = self.entry_1.text()
+		command = f"netsh wlan delete profile name=\"{name}\"".encode("gbk")
+		try:
+			self.work_start(cmd=command)
+		except Exception as e:
+			QMessageBox.warning(self, "Exception", f"{e}")
 
 	# def confirm(self):
 	# 	self.entry_1_value = self.entry_1.text()
@@ -77,13 +95,16 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 	# 		except Exception as e:
 	# 			QMessageBox.infomation(self, "Quit", e)
 
-	def work_start(self):
+	def work_start(self, cmd):
 		self.statusbar.showMessage("状态: 请稍等,正在处理...", 3600000)
-		self.thread = WorkThread_WiFiViewer(cmd=self.cmd)
+		self.thread = WorkThread_WiFiViewer(command=cmd)
 		# 将线程th的信号finishSignal和UI主线程中的槽函数button_finish进行连接
 		self.thread.finishSignal.connect(self.work_finish)
 		self.thread.signal_name.connect(self.signal_name_call)
 		self.thread.signal_key.connect(self.signal_key_call)
+		self.thread.signal_conn_succ.connect(self.signal_conn_succ_call)
+		self.thread.signal_conn_fail.connect(self.signal_conn_fail_call)
+		self.thread.signal_net_del.connect(self.signal_net_del_call)
 		self.thread.signal_err.connect(self.signal_err_call)
 		# self.thread.signal_1.connect(self.signal_1_call)
 		# self.thread.signal_2.connect(self.signal_2_call)
@@ -92,7 +113,7 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 	def signal_name_call(self, stdout_value, stderr_value):
 		wifilist = re.findall(r"[:](.*?)[\r\n]", stdout_value)
 		self.wifilist = [s.strip() for s in wifilist if s.strip() != ""]
-		self.slm.setStringList(self.wifilist)
+		self.slm.setStringList(self.wifilist)	# 绑定数据源
 		self.statusbar.showMessage(f"状态: 列表刷新成功!", 5000)
 
 	def signal_key_call(self, stdout_value, stderr_value):
@@ -102,11 +123,25 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 			self.entry_2.setText("无密码")
 		self.work_finish()
 
+	def signal_conn_succ_call(self, stdout_value):
+		self.statusbar.showMessage(f"状态: 处理完成, 连接成功!", 5000)
+		QMessageBox.information(self, "Information", f"处理完成, 连接成功!\n{stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage("")
+
+	def signal_conn_fail_call(self, stdout_value):
+		self.statusbar.showMessage(f"状态: 处理完成, 连接失败!", 5000)
+		QMessageBox.warning(self, "Warning", f"发生异常, 连接失败!\nException详情: {stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage("")
+
+	def signal_net_del_call(self, stdout_value):
+		self.statusbar.showMessage(f"状态: 已删除该网络配置文件!", 5000)
+		QMessageBox.information(self, "Information", f"处理完成, 执行成功!\n{stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage("")
+
 	def signal_err_call(self, err):
 		self.statusbar.showMessage(f"状态: 发生异常, 获取失败!", 5000)
-		error = QMessageBox.warning(self, "Exception", "发生异常, 获取失败!\nException详情: " + err, QMessageBox.Ok)
-		if error == QMessageBox.Ok:
-			self.statusbar.showMessage("", 1000)
+		QMessageBox.warning(self, "Exception", f"发生异常, 获取失败!\nException详情: {err}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage("")
 
 	# def signal_1_call(self):
 	# 	self.entry_1.setText(text_1)
@@ -115,13 +150,13 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 	# 	self.entry_2.setText(text_2)
 
 	def work_finish(self):
-		self.statusbar.showMessage(f"状态: 处理完成, 获取成功!", 5000)
+		self.statusbar.showMessage(f"状态: 处理完成, 执行成功!", 5000)
 
 	# 每一个QObject对象或其子对象都有一个QObject.timerEvent方法
 	# 为了响应定时器的超时事件，需要重写进度条的timerEvent方法
 	def closeEvent(self, event):
 		"""重写该方法使用sys.exit(0) 时就会只要关闭了主窗口，所有关联的子窗口也会全部关闭"""
-		reply = QMessageBox.question(self, "Quit", "Do you want to quit ?", QMessageBox.Yes, QMessageBox.No)
+		reply = QMessageBox.question(self, "Quit", "Do you want to quit ?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 		if reply == QMessageBox.Yes:
 			event.accept()
 			self.signal_child_3.emit()
