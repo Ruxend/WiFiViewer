@@ -111,14 +111,16 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		self.thread.start()  				# 启动线程
 
 	def signal_name_call(self, stdout_value, stderr_value):
-		wifilist = re.findall(r"[:](.*?)[\r\n]", stdout_value)
-		self.wifilist = [s.strip() for s in wifilist if s.strip() != ""]
+		# wifilist = re.findall(r"[:](.*?)[\r\n]", stdout_value)
+		wifilist = re.findall(r"(?<=: )(.*?)(?=\n)", stdout_value)
+		self.wifilist = [s.strip() for s in wifilist if s.strip("\r") != ""]
 		self.slm.setStringList(self.wifilist)	# 绑定数据源
 		self.statusbar.showMessage(f"状态: 列表刷新成功!", 5000)
 
 	def signal_key_call(self, stdout_value, stderr_value):
 		if "关键内容" in stdout_value:
-			self.entry_2.setText(re.search(r"关键内容(.*)[\r]", stdout_value).group().split(":")[1][1:-1])#.split("\r")[0])
+			# self.entry_2.setText(re.search(r"关键内容(.*)[\r]", stdout_value).group().split(":")[1][1:-1])#.split("\r")[0])
+			self.entry_2.setText(re.search(r"(?<=关键内容            : )(.*?)(?=\n)", stdout_value).group().strip("\r\n"))
 		else:
 			self.entry_2.setText("无密码")
 		self.work_finish()
