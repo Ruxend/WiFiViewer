@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#-*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QApplication,QMainWindow,QDockWidget,QWidget,QFrame,QLabel,
 						QLineEdit,QTextEdit,QPushButton,QDialog,QSlider,QMessageBox,
 						QInputDialog,QFileDialog,QFontDialog,QColorDialog,QToolBar,
@@ -104,6 +104,7 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		self.thread.signal_key.connect(self.signal_key_call)
 		self.thread.signal_conn_succ.connect(self.signal_conn_succ_call)
 		self.thread.signal_conn_fail.connect(self.signal_conn_fail_call)
+		self.thread.signal_conn_ovrng.connect(self.signal_conn_ovrng_call)
 		self.thread.signal_net_del.connect(self.signal_net_del_call)
 		self.thread.signal_err.connect(self.signal_err_call)
 		# self.thread.signal_1.connect(self.signal_1_call)
@@ -128,6 +129,11 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 	def signal_conn_succ_call(self, stdout_value):
 		self.statusbar.showMessage(f"状态: 处理完成, 连接成功!", 5000)
 		QMessageBox.information(self, "Information", f"处理完成, 连接成功!\n{stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage("")
+
+	def signal_conn_ovrng_call(self, stdout_value):
+		self.statusbar.showMessage(f"状态: 处理完成, 连接失败!", 5000)
+		QMessageBox.warning(self, "Warning", f"发生异常, 连接失败!\nException详情: {stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
 		self.statusbar.showMessage("")
 
 	def signal_conn_fail_call(self, stdout_value):

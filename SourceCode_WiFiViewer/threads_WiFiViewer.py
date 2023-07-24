@@ -16,6 +16,7 @@ class WorkThread_WiFiViewer(QThread):
 	signal_key = pyqtSignal(str, str)
 	signal_err = pyqtSignal(str)
 	signal_conn_succ = pyqtSignal(str)
+	signal_conn_ovrng = pyqtSignal(str)
 	signal_conn_fail = pyqtSignal(str)
 	signal_net_del = pyqtSignal(str)
 	signal_else = pyqtSignal(str)
@@ -42,6 +43,8 @@ class WorkThread_WiFiViewer(QThread):
 				self.signal_key.emit(stdout_value, stderr_value)
 			elif "已成功完成连接请求" in stdout_value:
 				self.signal_conn_succ.emit(stdout_value)
+			elif "没有分配给指定接口的配置文件":
+				self.signal_conn_ovrng.emit(stdout_value)
 			elif "指定的网络无法用于连接" in stdout_value:
 				self.signal_conn_fail.emit(stdout_value)
 			elif "已从接口“WLAN”中删除配置文件" in stdout_value:
@@ -64,6 +67,6 @@ class WorkThread_WiFiViewer(QThread):
 		self.finishSignal.emit()  		# 发射程序结束输出
 
 # cmd = "netsh wlan show profiles name=\"锦轩宾馆\" key=clear".encode("gbk")
-# cmd = "netsh wlan connect name=\"1807-1\"".encode("gbk")
+# cmd = "netsh wlan connect name=\"(??.??)\"".encode("gbk")
 # cmd = f"netsh wlan delete profile name=\"1807-1\"".encode("gbk")
 # WorkThread_WiFiViewer(cmd).run()
