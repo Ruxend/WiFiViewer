@@ -37,8 +37,11 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		QShortcut(QKeySequence("Escape"), self, self.close)
 
 	def btn_1_clicked(self):
-		command = "netsh wlan show profiles".encode("gbk")
 		try:
+			if self.btn_change.text() == "显示可用网络":
+				command = f"netsh wlan show profiles".encode("gbk")
+			elif self.btn_change.text() == "显示已知网络":
+				command = f"netsh wlan show network".encode("gbk")
 			self.work_start(cmd=command)
 		except Exception as e:
 			QMessageBox.information(self, "Exception", f"{e}")
