@@ -32,6 +32,7 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		self.btn_2.clicked.connect(self.btn_2_clicked) 		# 连接槽
 		# self.btn_confirm.clicked.connect(self.confirm)			# 连接槽
 		# QShortcut(QKeySequence("Return"), self, self.confirm)
+		self.btn_change.clicked.connect(self.btn_change_clicked)
 		self.btn_quit.clicked.connect(self.close)					# 连接槽
 		QShortcut(QKeySequence("Escape"), self, self.close)
 
@@ -55,6 +56,19 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		msg = QMessageBox.information(self, "Infomation", "已复制到剪切板!", QMessageBox.Ok)
 		if msg == QMessageBox.Ok:
 			self.statusbar.showMessage("", 1000)
+
+	def btn_change_clicked(self):
+		try:
+			if self.btn_change.text() == "显示可用网络":
+				command = f"netsh wlan show network".encode("gbk")
+				self.btn_change.setText("显示已知网络")
+			elif self.btn_change.text() == "显示已知网络":
+				command = f"netsh wlan show profiles".encode("gbk")
+				self.btn_change.setText("显示可用网络")
+			self.work_start(cmd=command)
+		except Exception as e:
+			self.btn_change.setText("显示可用网络")
+			QMessageBox.information(self, "Exception", f"{e}")
 
 	def list_clicked(self, QModelIndex):
 		self.entry_2.clear()
@@ -101,6 +115,7 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		# 将线程th的信号finishSignal和UI主线程中的槽函数button_finish进行连接
 		self.thread.finishSignal.connect(self.work_finish)
 		self.thread.signal_name.connect(self.signal_name_call)
+		self.thread.signal_visiblename.connect(self.signal_visiblename_call)
 		self.thread.signal_key.connect(self.signal_key_call)
 		self.thread.signal_conn_succ.connect(self.signal_conn_succ_call)
 		self.thread.signal_conn_fail.connect(self.signal_conn_fail_call)
@@ -111,11 +126,16 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		self.thread.start()  				# 启动线程
 
 	def signal_name_call(self, stdout_value, stderr_value):
-		# wifilist = re.findall(r"[:](.*?)[\r\n]", stdout_value)
 		wifilist = re.findall(r"(?<=: )(.*?)(?=\n)", stdout_value)
 		self.wifilist = [s.strip() for s in wifilist if s.strip("\r") != ""]
 		self.slm.setStringList(self.wifilist)	# 绑定数据源
-		self.statusbar.showMessage(f"状态: 列表刷新成功!", 5000)
+		self.statusbar.showMessage(f"状态: 成功列出所有已知网络!", 5000)
+
+	def signal_visiblename_call(self, stdout_value, stderr_value):
+		wifilist = re.findall(r"(?<=\d : )(.*?)(?=\n)", stdout_value)
+		self.wifilist = [s.strip() for s in wifilist if s.strip("\r") != ""]
+		self.slm.setStringList(self.wifilist)	# 绑定数据源
+		self.statusbar.showMessage(f"状态: 成功列出当前可用网络!", 5000)
 
 	def signal_key_call(self, stdout_value, stderr_value):
 		if "关键内容" in stdout_value:

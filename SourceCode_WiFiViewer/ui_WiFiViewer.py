@@ -225,6 +225,15 @@ class ui_WiFiViewer():
 		# self.btn_confirm.setFont(QFont("微软雅黑", 9, QFont.Normal))
 		# self.btn_confirm.setStyleSheet("QPushButton:hover{background-color:limegreen}")
 		# self.frame_grid.addWidget(self.btn_confirm, 3, 3, 1, 1)
+		# "Change"
+		self.btn_change = QPushButton()
+		self.btn_change.setObjectName("btn_change")
+		self.btn_change.setText(_translate("self", "显示可用网络"))
+		self.btn_change.setToolTip("Running")
+		# self.btn_change.setAutoRepeat()
+		self.btn_change.setFont(QFont("微软雅黑", 9, QFont.Normal))
+		self.btn_change.setStyleSheet("QPushButton:hover{background-color:limegreen}")
+		self.frame_grid.addWidget(self.btn_change, 3, 3, 1, 2)
 		# "Quit"
 		self.btn_quit = QPushButton()
 		self.btn_quit.setObjectName("btn_quit")
