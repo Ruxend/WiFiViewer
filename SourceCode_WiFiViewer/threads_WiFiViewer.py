@@ -18,6 +18,7 @@ class WorkThread_WiFiViewer(QThread):
 	signal_err = pyqtSignal(str)
 	signal_conn_succ = pyqtSignal(str)
 	signal_conn_fail = pyqtSignal(str)
+	signal_conn_notincfg = pyqtSignal(str)
 	signal_net_del = pyqtSignal(str)
 	signal_else = pyqtSignal(str)
 	# signal_1 = pyqtSignal(str)
@@ -39,18 +40,33 @@ class WorkThread_WiFiViewer(QThread):
 			stderr_value = stderr_value.decode("gbk", "ignore")
 			if "组策略配置文件" in stdout_value:
 				self.signal_name.emit(stdout_value, stderr_value)
-			elif "个网络可见" in stdout_value:
-				self.signal_visiblename.emit(stdout_value, stderr_value)
 			elif "配置文件信息" in stdout_value:
 				self.signal_key.emit(stdout_value, stderr_value)
+			elif "个网络可见" in stdout_value:
+				self.signal_visiblename.emit(stdout_value, stderr_value)
 			elif "已成功完成连接请求" in stdout_value:
 				self.signal_conn_succ.emit(stdout_value)
 			elif "指定的网络无法用于连接" in stdout_value:
 				self.signal_conn_fail.emit(stdout_value)
+			elif "没有分配给指定接口的配置文件" in stdout_value:
+				self.signal_conn_notincfg.emit(stdout_value)
 			elif "已从接口“WLAN”中删除配置文件" in stdout_value:
 				self.signal_net_del.emit(stdout_value)
+			elif "Group policy profiles" in stdout_value:
+				self.signal_name.emit(stdout_value, stderr_value)
+			elif "Profile information" in stdout_value:
+				self.signal_key.emit(stdout_value, stderr_value)
+			elif "networks currently visible" in stdout_value:
+				self.signal_visiblename.emit(stdout_value, stderr_value)
+			elif "Connection request was completed successfully" in stdout_value:
+				self.signal_conn_succ.emit(stdout_value)
+			elif "is not available to connect" in stdout_value:
+				self.signal_conn_fail.emit(stdout_value)
+			elif "assigned to the specified interface" in stdout_value:
+				self.signal_conn_notincfg.emit(stdout_value)
+			elif 'is deleted from interface "WLAN"' in stdout_value:
+				self.signal_net_del.emit(stdout_value)
 			else:
-				print(stdout_value)
 				self.signal_else.emit(stdout_value)
 			return
 		except Exception as e:
@@ -64,9 +80,11 @@ class WorkThread_WiFiViewer(QThread):
 		# 	# log("IOError: %s" % err)
 		# 	self.signal_2.emit(err)
 			return
-		self.finishSignal.emit()  		# 发射程序结束输出
+		finally:
+			self.finishSignal.emit()  		# 发射程序结束输出
 
-# cmd = "netsh wlan show profiles name=\"锦轩宾馆\" key=clear".encode("gbk")
+# cmd = "netsh wlan show profiles".encode("gbk")
+# cmd = "netsh wlan show profiles name=\"402\" key=clear".encode("gbk")
 # cmd = "netsh wlan connect name=\"1807-1\"".encode("gbk")
 # cmd = f"netsh wlan delete profile name=\"1807-1\"".encode("gbk")
 # WorkThread_WiFiViewer(cmd).run()

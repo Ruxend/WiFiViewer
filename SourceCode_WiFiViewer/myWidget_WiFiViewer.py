@@ -76,7 +76,7 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 	def list_clicked(self, QModelIndex):
 		self.entry_2.clear()
 		ssid = self.wifilist[QModelIndex.row()]	# Method_1
-		# ssid = self.list.selectionModel().selectedIndexes()[0].date()	# Methon_2
+		# # ssid = self.list.selectionModel().selectedIndexes()[0].date()	# Methon_2
 		self.entry_1.setText(ssid)
 		command = f"netsh wlan show profiles name=\"{ssid}\" key=clear".encode("gbk")
 		try:
@@ -122,14 +122,16 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		self.thread.signal_key.connect(self.signal_key_call)
 		self.thread.signal_conn_succ.connect(self.signal_conn_succ_call)
 		self.thread.signal_conn_fail.connect(self.signal_conn_fail_call)
+		self.thread.signal_conn_notincfg.connect(self.signal_conn_notincfg_call)
 		self.thread.signal_net_del.connect(self.signal_net_del_call)
 		self.thread.signal_err.connect(self.signal_err_call)
+		self.thread.signal_else.connect(self.signal_else_call)
 		# self.thread.signal_1.connect(self.signal_1_call)
 		# self.thread.signal_2.connect(self.signal_2_call)
 		self.thread.start()  				# 启动线程
 
 	def signal_name_call(self, stdout_value, stderr_value):
-		wifilist = re.findall(r"(?<=: )(.*?)(?=\n)", stdout_value)
+		wifilist = re.findall(r"(?<= : )(.*?)(?=\n)", stdout_value)
 		self.wifilist = [s.strip() for s in wifilist if s.strip("\r") != ""]
 		self.slm.setStringList(self.wifilist)	# 绑定数据源
 		self.statusbar.showMessage(f"状态: 成功列出所有已知网络!", 5000)
@@ -144,18 +146,25 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 		if "关键内容" in stdout_value:
 			# self.entry_2.setText(re.search(r"关键内容(.*)[\r]", stdout_value).group().split(":")[1][1:-1])#.split("\r")[0])
 			self.entry_2.setText(re.search(r"(?<=关键内容            : )(.*?)(?=\n)", stdout_value).group().strip("\r\n"))
+		# elif "Key Content" in stdout_value:
+			# self.entry_2.setText(re.search(r"(?<=Key Content            : )(.*?)(?=\n)", stdout_value).group().strip("\r\n"))
 		else:
 			self.entry_2.setText("无密码")
-		self.work_finish()
+		# self.work_finish()
 
 	def signal_conn_succ_call(self, stdout_value):
-		self.statusbar.showMessage(f"状态: 处理完成, 连接成功!", 5000)
-		QMessageBox.information(self, "Information", f"处理完成, 连接成功!\n{stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage(f"状态: 处理完成, 操作成功!", 5000)
+		QMessageBox.information(self, "Information", f"处理完成, 操作成功!\n{stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
 		self.statusbar.showMessage("")
 
 	def signal_conn_fail_call(self, stdout_value):
-		self.statusbar.showMessage(f"状态: 处理完成, 连接失败!", 5000)
-		QMessageBox.warning(self, "Warning", f"发生异常, 连接失败!\nException详情: {stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage(f"状态: 处理完成, 操作失败!", 5000)
+		QMessageBox.warning(self, "Warning", f"发生异常, 操作失败!\nException详情: {stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage("")
+
+	def signal_conn_notincfg_call(self, stdout_value):
+		self.statusbar.showMessage(f"状态: 处理完成, 操作失败!", 5000)
+		QMessageBox.warning(self, "Warning", f"发生异常, 操作失败!\nException详情: {stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
 		self.statusbar.showMessage("")
 
 	def signal_net_del_call(self, stdout_value):
@@ -166,6 +175,11 @@ class myWidget_WiFiViewer(QMainWindow, ui_WiFiViewer):
 	def signal_err_call(self, err):
 		self.statusbar.showMessage(f"状态: 发生异常, 获取失败!", 5000)
 		QMessageBox.warning(self, "Exception", f"发生异常, 获取失败!\nException详情: {err}", QMessageBox.Ok, QMessageBox.Ok)
+		self.statusbar.showMessage("")
+
+	def signal_else_call(self, stdout_value):
+		self.statusbar.showMessage(f"状态: Exception, 获取失败!", 5000)
+		QMessageBox.warning(self, "Exception", f"Exception, 获取失败!\nException详情: {stdout_value}", QMessageBox.Ok, QMessageBox.Ok)
 		self.statusbar.showMessage("")
 
 	# def signal_1_call(self):
